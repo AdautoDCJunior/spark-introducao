@@ -210,8 +210,8 @@ joinCompanies = dfEstablishment.join(dfCompany, 'CNPJ_BASICO', how='inner')
 #     )
 # ).show(truncate=True)
 
-dfCompany.createOrReplaceTempView('companyView')
-joinCompanies.createOrReplaceTempView('joinCompaniesView')
+# dfCompany.createOrReplaceTempView('companyView')
+# joinCompanies.createOrReplaceTempView('joinCompaniesView')
 
 # spark.sql('SELECT * FROM companyView').show(5, False)
 
@@ -228,22 +228,85 @@ joinCompanies.createOrReplaceTempView('joinCompaniesView')
 #     ''')\
 #     .show(5)
 
-freq = spark.sql('''
-    SELECT YEAR(DATA_DE_INICIO_ATIVIDADE) AS DATA_DE_INICIO, COUNT(CNPJ_BASICO) AS COUNT
-        FROM joinCompaniesView 
-        WHERE YEAR(DATA_DE_INICIO_ATIVIDADE) >= 2010
-        GROUP BY DATA_DE_INICIO
-        ORDER BY DATA_DE_INICIO
-''')
+# freq = spark.sql('''
+#     SELECT YEAR(DATA_DE_INICIO_ATIVIDADE) AS DATA_DE_INICIO, COUNT(CNPJ_BASICO) AS COUNT
+#         FROM joinCompaniesView 
+#         WHERE YEAR(DATA_DE_INICIO_ATIVIDADE) >= 2010
+#         GROUP BY DATA_DE_INICIO
+#         ORDER BY DATA_DE_INICIO
+# ''')
 
-freq.createOrReplaceTempView('freqView')
+# freq.createOrReplaceTempView('freqView')
 
-spark.sql('''
-    SELECT *
-        FROM freqView
-    UNION ALL
-    SELECT 'Total' AS DATA_DE_INICIO, SUM(COUNT) AS COUNT
-        FROM freqView
-''').show()
+# spark.sql('''
+#     SELECT *
+#         FROM freqView
+#     UNION ALL
+#     SELECT 'Total' AS DATA_DE_INICIO, SUM(COUNT) AS COUNT
+#         FROM freqView
+# ''').show()
 
 # freq.show()
+
+# writePathCompanyCSV = os.path.join(basePath, 'data', 'empresas', 'csv')
+# dfCompany.write.csv(
+#     path=writePathCompanyCSV,
+#     mode='overwrite',
+#     sep=';',
+#     header=True
+# )
+
+# writePathEstablishmentCSV = os.path.join(basePath, 'data', 'estabelecimentos', 'csv')
+# dfEstablishment.write.csv(
+#     path=writePathEstablishmentCSV,
+#     mode='overwrite',
+#     sep=';',
+#     header=True
+# )
+
+# writePathPartnersCSV = os.path.join(basePath, 'data', 'socios', 'csv')
+# dfPartners.write.csv(
+#     path=writePathPartnersCSV,
+#     mode='overwrite',
+#     sep=';',
+#     header=True
+# )
+
+# writePathCompanyORC = os.path.join(basePath, 'data', 'empresas', 'orc')
+# dfCompany.write.parquet(
+#     path=writePathCompanyORC,
+#     mode='overwrite'
+# )
+
+# writePathEstablishmentORC = os.path.join(basePath, 'data', 'estabelecimentos', 'orc')
+# dfEstablishment.write.orc(
+#     path=writePathEstablishmentORC,
+#     mode='overwrite',
+# )
+
+# writePathPartnersORC = os.path.join(basePath, 'data', 'socios', 'orc')
+# dfPartners.write.parquet(
+#     path=writePathPartnersORC,
+#     mode='overwrite',
+# )
+
+# writePathCompanyCsvAll = os.path.join(basePath, 'data', 'empresas', 'csv-unico')
+# dfCompany.coalesce(1).write.csv(
+#     path=writePathCompanyCsvAll,
+#     mode='overwrite',
+#     sep=';',
+#     header=True
+# )
+
+writePathCompanyOrcPartitionBy = os.path.join(basePath, 'data', 'empresas', 'orc-partitionBy')
+dfCompany.write.orc(
+    path=writePathCompanyOrcPartitionBy,
+    mode='overwrite',
+    partitionBy='PORTE'
+)
+
+# dfCompanyParquet = spark.read.parquet(writePathCompanyParquet)
+
+# dfCompanyParquet.printSchema()
+
+spark.stop()
