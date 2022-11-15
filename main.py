@@ -110,12 +110,140 @@ dfPartners = dfPartners.withColumn(
 
 # df.where(f.upper(df['data']).like('RESTAURANTE%')).show(truncate=False)
 
-dfCompany\
-    .select( 
-        'RAZAO_SOCIAL', 
-        'NATUREZA_JURIDICA', 
-        'PORTE',
-        'CAPITAL_SOCIAL',
-    )\
-    .filter(f.upper(dfCompany['RAZAO_SOCIAL']).like('%RESTAURANTE%'))\
-    .show(10, False)
+# dfCompany\
+#     .select( 
+#         'RAZAO_SOCIAL', 
+#         'NATUREZA_JURIDICA', 
+#         'PORTE',
+#         'CAPITAL_SOCIAL',
+#     )\
+#     .filter(f.upper(dfCompany['RAZAO_SOCIAL']).like('%RESTAURANTE%'))\
+#     .show(10, False)
+
+# dfPartners\
+#     .select(f.year('DATA_DE_ENTRADA_SOCIEDADE').alias('ANO_DE_ENTRADA'))\
+#     .filter('ANO_DE_ENTRADA >= 2010')\
+#     .groupBy('ANO_DE_ENTRADA')\
+#     .count()\
+#     .orderBy('ANO_DE_ENTRADA', ascending=True)\
+#     .show(truncate=False)
+
+# dfCompany\
+#     .select('CNPJ_BASICO', 'PORTE', 'CAPITAL_SOCIAL')\
+#     .groupBy('PORTE')\
+#     .agg(
+#         f.avg('CAPITAL_SOCIAL').alias('CAPITAL_SOCIAL_MEDIO'),
+#         f.count('CNPJ_BASICO').alias("FREQUENCIA")
+#     )\
+#     .orderBy('PORTE', ascending=True)\
+#     .show(truncate=False)
+
+# dfCompany\
+#     .select('CAPITAL_SOCIAL')\
+#     .summary()\
+#     .show(truncate=False)
+
+
+# produtos = spark.createDataFrame(
+#     [
+#         ('1', 'Bebidas', 'Água mineral'), 
+#         ('2', 'Limpeza', 'Sabão em pó'), 
+#         ('3', 'Frios', 'Queijo'), 
+#         ('4', 'Bebidas', 'Refrigerante'),
+#         ('5', 'Pet', 'Ração para cães')
+#     ],
+#     ['id', 'cat', 'prod']
+# )
+
+# impostos = spark.createDataFrame(
+#     [
+#         ('Bebidas', 0.15), 
+#         ('Limpeza', 0.05),
+#         ('Frios', 0.065),
+#         ('Carnes', 0.08)
+#     ],
+#     ['cat', 'tax']
+# )
+
+# produtos\
+#     .join(impostos, 'cat', how='inner')\
+#     .sort('id')\
+#     .show(truncate=True)
+
+# produtos\
+#     .join(impostos, 'cat', how='left')\
+#     .sort('id')\
+#     .show(truncate=True)
+
+# produtos\
+#     .join(impostos, 'cat', how='right')\
+#     .sort('id')\
+#     .show(truncate=True)
+
+# produtos\
+#     .join(impostos, 'cat', how='outer')\
+#     .sort('id')\
+#     .show(truncate=True)
+
+joinCompanies = dfEstablishment.join(dfCompany, 'CNPJ_BASICO', how='inner')
+
+# # joinCompanies.printSchema()
+
+# freq = joinCompanies\
+#     .select(
+#         'CNPJ_BASICO',
+#         f.year('DATA_DE_INICIO_ATIVIDADE').alias('DATA_DE_INICIO')
+#     )\
+#     .where('DATA_DE_INICIO >= 2010')\
+#     .groupBy('DATA_DE_INICIO')\
+#     .agg(
+#         f.count('CNPJ_BASICO').alias('FREQUENCIA')
+#     )\
+#     .orderBy('DATA_DE_INICIO', ascending=True)
+
+# # freq.show(truncate=True)
+
+# freq.union(
+#     freq.select(
+#         f.lit('Total').alias('DATA_DE_INICIO'),
+#         f.sum(freq['FREQUENCIA']).alias('FREQUENCIA')
+#     )
+# ).show(truncate=True)
+
+dfCompany.createOrReplaceTempView('companyView')
+joinCompanies.createOrReplaceTempView('joinCompaniesView')
+
+# spark.sql('SELECT * FROM companyView').show(5, False)
+
+# spark.sql('''
+#     SELECT *
+#         FROM companyView
+#         WHERE CAPITAL_SOCIAL = 50
+# ''').show(5)
+
+# spark.sql('''
+#         SELECT PORTE, MEAN(CAPITAL_SOCIAL) AS MEDIA 
+#             FROM companyView 
+#             GROUP BY PORTE
+#     ''')\
+#     .show(5)
+
+freq = spark.sql('''
+    SELECT YEAR(DATA_DE_INICIO_ATIVIDADE) AS DATA_DE_INICIO, COUNT(CNPJ_BASICO) AS COUNT
+        FROM joinCompaniesView 
+        WHERE YEAR(DATA_DE_INICIO_ATIVIDADE) >= 2010
+        GROUP BY DATA_DE_INICIO
+        ORDER BY DATA_DE_INICIO
+''')
+
+freq.createOrReplaceTempView('freqView')
+
+spark.sql('''
+    SELECT *
+        FROM freqView
+    UNION ALL
+    SELECT 'Total' AS DATA_DE_INICIO, SUM(COUNT) AS COUNT
+        FROM freqView
+''').show()
+
+# freq.show()
